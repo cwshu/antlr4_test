@@ -31,7 +31,7 @@ public class ExtractInterfaceTool {
         ParseTree tree = parser.compilationUnit(); // parse
 
         ParseTreeWalker walker = new ParseTreeWalker(); // create standard walker
-        ExtractInterfaceListener extractor = new ExtractInterfaceListener(parser);
+        ExtractInterfaceListener extractor = new ExtractInterfaceListener();
         walker.walk(extractor, tree); // initiate walk of tree with listener
     }
 }

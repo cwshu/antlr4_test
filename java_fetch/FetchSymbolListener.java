@@ -26,6 +26,11 @@ public class FetchSymbolListener extends JavaBaseListener {
             String name = nameNode.getText();
             System.out.print(name+".");
         }
+
+        if (ctx.getChildCount() == 5) {
+            // count 5 means import with .*
+            System.out.print("*");
+        }
         System.out.print("\n");
     }
 
@@ -86,18 +91,28 @@ public class FetchSymbolListener extends JavaBaseListener {
         String varType = tokens.getText(ctx.type());
         
         // 2. each variables
-        // TODO: variable array type 
-        //       (maybe we need modify parser(ANTLR Action?), because array info doesn't exist in AST)
+        // 3. variable array dimension. e.g. int a[][]
         ArrayList<String> varNameList = new ArrayList<String>();
+        ArrayList<Integer> varArrayDimensionList = new ArrayList<Integer>();
 
         List<JavaParser.VariableDeclaratorContext> varDeclCtxList = ctx.variableDeclarators().variableDeclarator();
         for (JavaParser.VariableDeclaratorContext varDeclCtx : varDeclCtxList) {
             String varName = varDeclCtx.variableDeclaratorId().Identifier().getText();
+            // variableDeclaratorId : Identifier ('[' ']')*
+            Integer arrayDimension = (varDeclCtx.variableDeclaratorId().getChildCount() - 1) / 2;
+
             varNameList.add(varName);
+            varArrayDimensionList.add(arrayDimension);
         }
 
-        for (String varName : varNameList) {
-            System.out.println("ClassVar: "+varType+":"+varName);
+        for (int i=0; i<varNameList.size(); i++) {
+            String varName = varNameList.get(i);
+            Integer arrayDimension = varArrayDimensionList.get(i);
+            System.out.print("ClassVar: "+varType);
+            for (int j=0; j<arrayDimension; j++) {
+                System.out.print("[]");
+            }
+            System.out.println(":"+varName);
         }
     }
 }
