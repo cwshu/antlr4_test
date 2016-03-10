@@ -23,7 +23,7 @@ public class FetchSymbolTool {
         ParseTree tree = parser.compilationUnit(); // parse
 
         ParseTreeWalker walker = new ParseTreeWalker(); // create standard walker
-        FetchSymbolListener symbolListener = new FetchSymbolListener(parser);
+        FetchSymbolListener symbolListener = new FetchSymbolListener();
         walker.walk(symbolListener, tree); // initiate walk of tree with listener
     }
 }

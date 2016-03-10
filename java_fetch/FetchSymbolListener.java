@@ -6,8 +6,7 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class FetchSymbolListener extends JavaBaseListener {
-    JavaParser parser;
-    public FetchSymbolListener(JavaParser parser) { this.parser = parser; }
+    public FetchSymbolListener() {}
 
     // classDeclaration : 'class' Identifier typeParameters? ('extends' type)? ('implements' typeList)? classBody ;
     @Override
@@ -34,61 +33,76 @@ public class FetchSymbolListener extends JavaBaseListener {
         System.out.print("\n");
     }
 
-    // TODO: constructor
+    // TODO: full method/field support for ClassCon/Func/Var
+    // memberDeclaration
+    //     :   methodDeclaration
+    //     |   genericMethodDeclaration: TODO
+    //     |   fieldDeclaration
+    //     |   constructorDeclaration: TODO
+    //     |   genericConstructorDeclaration: TODO
+    
+    // constructorDeclaration : Identifier formalParameters 
+    //                          ('throws' qualifiedNameList)? constructorBody
 
     // methodDeclaration : (type|'void') Identifier formalParameters ('[' ']')* 
     //                     ('throws' qualifiedNameList)? ( methodBody | ';')
     @Override
     public void enterMethodDeclaration(JavaParser.MethodDeclarationContext ctx){
-        TokenStream tokens = parser.getTokenStream();
-
         // 1. function return type
         // constructor use void return type
         String retType = "void";
         if ( ctx.type() != null ) {
-            retType = tokens.getText(ctx.type());
+            retType = ctx.type().getText();
         }
 
         // 2. function name
         String funcName = ctx.Identifier().getText();
 
         // 3. arguments type
-            // formalParameters : '(' formalParameterList? ')'
-            // formalParameterList : formalParameter (',' formalParameter)* (',' lastFormalParameter)? 
-            //                     | lastFormalParameter
-            // formalParameter : variableModifier* type variableDeclaratorId
-            // lastFormalParameter : variableModifier* type '...' variableDeclaratorId
-        ArrayList<String> funcArgs = new ArrayList<String>();
-        JavaParser.FormalParameterListContext paraList = ctx.formalParameters().formalParameterList();
-
-        if (paraList != null) {
-            List<JavaParser.FormalParameterContext> parameterCtxList = paraList.formalParameter();
-
-            for (JavaParser.FormalParameterContext parameterCtx : parameterCtxList) {
-                String type = tokens.getText(parameterCtx.type());
-                funcArgs.add(type);
-            }
-
-            if (paraList.lastFormalParameter() != null) {
-                String type = tokens.getText(paraList.lastFormalParameter().type());
-                funcArgs.add(type+"...");
-            }
-        }
+        ArrayList<String> funcArgsType = parseFormalParametersType(ctx.formalParameters());
 
         System.out.print("ClassFunc: "+funcName+":"+retType+":");
-        for (String arg : funcArgs) {
+        for (String arg : funcArgsType) {
             System.out.print(arg+",");
         }
         System.out.print('\n');
     }
 
+    ArrayList<String> parseFormalParametersType(JavaParser.FormalParametersContext formalParametersCtx) {
+        // formalParameters : '(' formalParameterList? ')'
+        // formalParameterList : formalParameter (',' formalParameter)* (',' lastFormalParameter)? 
+        //                     | lastFormalParameter
+        // formalParameter : variableModifier* type variableDeclaratorId
+        // lastFormalParameter : variableModifier* type '...' variableDeclaratorId
+        ArrayList<String> paraTypeList = new ArrayList<String>();
+        JavaParser.FormalParameterListContext paraListCtx = formalParametersCtx.formalParameterList();
+
+        if (paraListCtx != null) {
+            List<JavaParser.FormalParameterContext> parameterCtxList = paraListCtx.formalParameter();
+
+            for (JavaParser.FormalParameterContext parameterCtx : parameterCtxList) {
+                String type = parameterCtx.type().getText();
+                paraTypeList.add(type);
+            }
+
+            if (paraListCtx.lastFormalParameter() != null) {
+                String type = paraListCtx.lastFormalParameter().type().getText();
+                paraTypeList.add(type+"...");
+            }
+        }
+        return paraTypeList;
+    }
+
+    int getVariableSuffixArrayDimension(JavaParser.VariableDeclaratorIdContext varDeclIdCtx){
+        // variableDeclaratorId : Identifier ('[' ']')*
+        return (varDeclIdCtx.getChildCount() - 1) / 2;
+    }
+
     // fieldDeclaration: type variableDeclarators ';'
     @Override
     public void enterFieldDeclaration(JavaParser.FieldDeclarationContext ctx){
-        TokenStream tokens = parser.getTokenStream();
-
         // 1. base variable type
-        String varType = tokens.getText(ctx.type());
+        String varType = ctx.type().getText();
         
         // 2. each variables
         // 3. variable array dimension. e.g. int a[][]
@@ -99,7 +113,7 @@ public class FetchSymbolListener extends JavaBaseListener {
         for (JavaParser.VariableDeclaratorContext varDeclCtx : varDeclCtxList) {
             String varName = varDeclCtx.variableDeclaratorId().Identifier().getText();
             // variableDeclaratorId : Identifier ('[' ']')*
-            Integer arrayDimension = (varDeclCtx.variableDeclaratorId().getChildCount() - 1) / 2;
+            Integer arrayDimension = new Integer( getVariableSuffixArrayDimension(varDeclCtx.variableDeclaratorId()) );
 
             varNameList.add(varName);
             varArrayDimensionList.add(arrayDimension);
